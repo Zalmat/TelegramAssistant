@@ -16,8 +16,31 @@ namespace bot_test_zalmat
         const string TOKEN = "###";
         static void Main(string[] args)
         {
-            //Вызываем метод авторизации.
-            GetMessages().Wait();
+
+                int n = 0;
+                int attemptCon = 0;
+                do
+                {
+                        try
+                    {
+                        //Вызываем метод авторизации.
+                        GetMessages().Wait();
+                    }
+                    catch (Exception ex)
+                    {
+                        n++;
+                        attemptCon = attemptCon + 1;
+                        logger.Debug("Попытка подключения " + attemptCon + " из 15");
+                        logger.Debug("Пауза между попытка 1-5 по 15 секунд, между 6-15 30 минут");
+                        logger.Debug("Ошибка в методе подключения GetMessages().Wait(): " + ex);
+                        if (n < 5) System.Threading.Thread.Sleep(15000);
+                        else  System.Threading.Thread.Sleep(1800000);                   
+                        
+                    }
+                } while(n<15);
+            logger.Debug("Превышено количество попыток подключения.");
+            
+
 /*
             logger.Trace("trace message");
             logger.Debug("debug message");
