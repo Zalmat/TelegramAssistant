@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  telegrambotsigner:
+    container_name: telegrambotsigner
+    image: telegrambotsigner
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - BOTTOKEN=${TOKEN}
+    volumes:
+      - ${FolderLogs}:/app/logs
