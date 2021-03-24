@@ -15,8 +15,8 @@ namespace TelegramBotSigner
             var logerFormat =  "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] {Message:lj}{NewLine}{Exception}";
             //настройка логгера
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.Console(outputTemplate: logerFormat)
+                .MinimumLevel.Debug()                
+                //.WriteTo.Console(outputTemplate: logerFormat) //Fix: Вывод в консоль не нужен.                
                 .WriteTo.File("./logs/log.log", outputTemplate: logerFormat, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 
