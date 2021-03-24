@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 using System.Security.Cryptography;
 
-namespace cl_sstut
+namespace TelegramBotSigner.Services
 {
     /// <summary>
     /// Для хеширования строки
     /// </summary>
-   public class HashText
+    public class SignHash
     {
         /// <summary>
         /// Получаем обычный MD5 от сторки типа STRING
@@ -19,10 +17,10 @@ namespace cl_sstut
         {
             //я хз нахер это надо, мне тупо нехватает мозгов, чтобы понять.
             using (MD5 md5Hash = MD5.Create())
-            {   
+            {
                 string hash = GetMd5Hash(md5Hash, inputHashText);
                 return hash.ToUpper();
-            }            
+            }
         }
 
         static string GetMd5Hash(MD5 md5Hash, string input)
@@ -47,6 +45,7 @@ namespace cl_sstut
         /// </summary>
         /// <param name="inputHashText">Текст для оработки</param>
         /// <returns></returns>
-        public static string CkassaMD5(string inputHashText) => HashText.Md5hash(HashText.Md5hash(inputHashText)).ToUpper();
+        public static string CkassaMD5(string inputHashText) => SignHash.Md5hash(SignHash.Md5hash(inputHashText)).ToUpper();
     }
 }
+

@@ -1,116 +1,49 @@
-﻿﻿using System;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
+﻿using System;
+using System.Threading;
+using Serilog;
 using Telegram.Bot;
-using cl_sstut;
-using NLog;
 
-
-namespace bot_test_zalmat
+namespace TelegramBotSigner
 {
     class Program
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
 
-        //Константа токена бота.
-        const string TOKEN = "###";
+        static ManualResetEvent resetEvent;
+
         static void Main(string[] args)
         {
+            var logerFormat =  "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level:u3}] {Message:lj}{NewLine}{Exception}";
+            //настройка логгера
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console(outputTemplate: logerFormat)
+                .WriteTo.File("./logs/log.log", outputTemplate: logerFormat, rollingInterval: RollingInterval.Day)
+                .CreateLogger();
 
-                int n = 0;
-                int attemptCon = 0;
-                do
-                {
-                        try
-                    {
-                        //Вызываем метод авторизации.
-                        GetMessages().Wait();
-                    }
-                    catch (Exception ex)
-                    {
-                        n++;
-                        attemptCon = attemptCon + 1;
-                        logger.Debug("Попытка подключения " + attemptCon + " из 15");
-                        logger.Debug("Пауза между попытка 1-5 по 15 секунд, между 6-15 30 минут");
-                        logger.Debug("Ошибка в методе подключения GetMessages().Wait(): " + ex);
-                        if (n < 5) System.Threading.Thread.Sleep(15000);
-                        else  System.Threading.Thread.Sleep(1800000);                   
-                        
-                    }
-                } while(n<15);
-            logger.Debug("Превышено количество попыток подключения.");
-            
+            //поток
+            resetEvent = new System.Threading.ManualResetEvent(false);
 
-/*
-            logger.Trace("trace message");
-            logger.Debug("debug message");
-            logger.Info("info message");
-            logger.Warn("warn message");
-            logger.Error("error message");
-            logger.Fatal("fatal message");
-*/          
+            Console.CancelKeyPress += Console_CancelKeyPress;
+
+            //инициализация клиента телеграм бота
+            var token = Environment.GetEnvironmentVariable("BOTTOKEN");
+
+            if (token == null)
+            {
+                Log.Error("Bot token is empty. Please check your Environment Variable 'BOTTOKEN'");
+                return;
+            }
+           
+            var client = new TelegramBotClient(token);
+            var bot = new SignerBot(client, Log.Logger);
+            bot.Run(resetEvent);
         }
-        static async Task GetMessages()
+
+        private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
-            TelegramBotClient bot = new TelegramBotClient(TOKEN);
-            int offset = 0;
-            int timeout = 0;            
-            DateTime now = DateTime.Now;            
-            try
-            {
-                //Отключение вебхука
-                await bot.SetWebhookAsync("");
-                bool a = false;
-                string sign;
-                bool udiNafig = false;
-
-                while (!udiNafig)
-                {
-                    //Получаем обнолвения и вытаскиваем из них сообщения.
-                    var updates = await bot.GetUpdatesAsync(offset, timeout);
-                    foreach (var update in updates)
-                    {
-                        var message = update.Message;
-                        if (message.Text == "Ты кто?")
-                        {
-                            //Этим можно логировать, что писали.
-                            //Console.WriteLine("Получено сообщение: " + message.Text);
-                            await bot.SendTextMessageAsync(message.Chat.Id, "Я твой бот");
-                            logger.Trace("{0:G}","Пользователь: \"" +  message.Chat.Username + "\" спрашивал кто я О_о ");
-                        }
-
-                        else if (message.Text == "Подпись")
-                        {
-                            await bot.SendTextMessageAsync(message.Chat.Id, "Введи строку из которой будем вытаскивать подпись");
-                            a = true;
-                        }
-                        else if (a == true)
-                        {
-                            sign = HashText.CkassaMD5(message.Text);
-                            await bot.SendTextMessageAsync(message.Chat.Id, sign);
-                            //Console.WriteLine("{0:G}", now + " Читал подпись для " + message.Chat.Username);
-                            logger.Trace("{0:G}","Посчитана подпись для пользователя: " + message.Chat.Username);
-                            a = false;
-                            sign = "";
-                        }
-                        else
-                        {
-                            await bot.SendTextMessageAsync(message.Chat.Id, "Уважаемый, " + message.Chat.Username + @" я знаю команды: " + Environment.NewLine + "\t\tТы кто?" + Environment.NewLine + "\t\tПодпись");
-                            //Console.WriteLine("{0:G}", now + " Что-то писал " + message.Chat.Username);
-                            //logger.Debug("{0:G}", "Тест дебаг вывода" + now + " Что-то писал " + message.Chat.Username);
-                            logger.Trace("{0:G}", "Общается пользователь: " + message.Chat.Username);
-                        }
-                            offset = update.Id + 1;
-                        
-                    }
-                    
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Debug("Взаимодействие с API ТГ приостановлено. Ошибка: " + ex);
-                //Console.WriteLine("Взаимодействие с API ТГ приостановлено. Ошибка: " + ex);
-            }
+            Log.Warning("Program exit requested.");
+            resetEvent.Set();
+            e.Cancel = true;
         }
     }
 }
